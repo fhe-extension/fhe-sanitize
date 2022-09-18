@@ -1,0 +1,25 @@
+
+Time for bootstrapp (simple)  3154349.000000 microseconds ~3.15 sec
+
+#sanitize with dummy Gaussian samples (for invG_rand) by using always one sample 
+#use only one PkEnc 
+Time for sanitization: 4684737.000000 microseconds ~4.68 sec
+
+
+#sanitize with 50000 precomputed Gaussian (per poool) and compute on the fly the other ones  
+# _init_fills 200, _pool_size 50000
+Time for sanitization: 4862501.000000 microseconds ~4.86 sec
+
+#sanitize with 500000 precomputed Gaussian (per poool) and compute on the fly the other ones 
+_init_fills 2000, _pool_size 500000
+Time for sanitization: 5201082.000000 microseconds ~5.20 sec
+
+
+#sanitize with 5000 precomputed Gaussian (per poool) and compute on the fly the other ones  
+_init_fills 20 and _pool_size 5000
+Time for sanitization: 21686921.000000 microseconds ~21.68 sec
+
+#sanitize with infinity samples and m=184539
+Time for sanitization: 44855662.000000 microseconds ~44.86 sec
+
+
