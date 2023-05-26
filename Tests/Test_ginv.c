@@ -9,7 +9,7 @@ void myprint(uint64_t number)
 #ifdef _WIN32
 	printf("%I64d\n", number);
 #else
-	printf("%lld\n", number);
+	printf("%ld\n", number);
 #endif
 }
 
@@ -18,7 +18,7 @@ void totalup(uint64_t count, size_t numSamples)
 #ifdef _WIN32
 	printf("The sum is %I64u out of %Iu samples\n",count,numSamples);
 #else
-	printf("The sum is %llu out of %zu samples\n",count,numSamples);
+	printf("The sum is %lu out of %zu samples\n",count,numSamples);
 #endif
 }
 
@@ -37,9 +37,11 @@ int main()
 	scanf("%lf", &input);
 
 	long double param = (long double) input;
+        gaussian_param_t p = gaussian(param);
+        precompute_random(p);
 
 	uint64_t *random = (uint64_t *) malloc(_ell*n*sizeof(uint64_t));
-	gaussian_ginv_vector(random, v, param, n);
+	gaussian_ginv_vector(random, v, n);
 
 /*	uint64_t u = 1;
 	uint64_t count = 0;

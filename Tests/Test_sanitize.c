@@ -20,7 +20,7 @@ int main(int argc, char const *argv[])
 	fft_init();
 	//double accum_enc = 0, accum_dec = 0, accum_ext = 0;
 	double accum_sanitize = 0;
-	tlwe_sk_fft sk = tlwe_keygen_fft();
+	tlwe_sk_fft sk = tlwe_keygen_fft(powl(2.0L,1.2L));
 	//pkg PK = sanitize_pk_gen_fft(sk, 0.0);
 
 	int* mu= (int*)malloc(_N * sizeof(int));
@@ -45,7 +45,7 @@ for (size_t count = 0; count < N_TRIES; ++count){
 	start_chrono();
 
 	//sanitize_pk_enc(ct, PK);
-	sanitize_pk_enc_online_fft(ct, sk, powl(2.0L,22.0L));
+	//sanitize_pk_enc_online_fft(ct, sk, powl(2.0L,22.0L));
 
 	accum_sanitize += stop_chrono();
 	int* mmu = tlwe_decrypt_fft(sk, TLWE_MSG_SPACE, ct);

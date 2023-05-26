@@ -2,18 +2,19 @@
 
 /* Parameters for TLWE */
 #define _k 1
-#define _N 2048
-#define _log2N 12
+#define _N 1024
+#define _log2N 11
 
 /* Parameters for TGSW */
-#define _Bg 512
-#define _logBg 9
-#define _ell 5
+#define _Bg 32
+#define _logBg 5
+#define _ell 7
 
 /* Parameters for Key switching */
-#define _Bks 8
-#define _logBks 3
-#define _t 6
+#define _Bks 2
+#define _logBks 1
+#define _t 11
 
 /* Parameters for Public key encryption */
-#define _m 10//184539
+//#define _m 10
+#define _m 184539

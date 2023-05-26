@@ -18,6 +18,7 @@ int main(int argc, char const *argv[])
 {
 	srand(time(NULL));
 
+        precompute_random(gaussian(10*_Bg));
 	const int MSG_SPACE = 4;
 	const int _lwe_size1 = 100;
 
@@ -69,7 +70,7 @@ int main(int argc, char const *argv[])
 		tlwe_decrypt_over_and_keep(p, sk, MSG_SPACE*MSG_SPACE, tlwe);
 		assert(p[0] == b);
 
-		tlwe_sample tlwe_out = external_product(tlwe, tgsw, 10*_Bg);
+		tlwe_sample tlwe_out = external_product(tlwe, tgsw);
 
 		tlwe_decrypt_over_and_keep(p, sk, MSG_SPACE*MSG_SPACE, tlwe_out);
 
@@ -123,7 +124,7 @@ int main(int argc, char const *argv[])
 
 		lwe_sample ct = lwe_encrypt(ns, MSG_SPACE, 100.0, m, _lwe_size1);
 	    
-		bootstrap(ct, bsk, ksk, 10*_Bg, MSG_SPACE,_lwe_size1);
+		bootstrap(ct, bsk, ksk, MSG_SPACE,_lwe_size1);
 
 
 		m2 = lwe_decrypt(ns, MSG_SPACE, ct,_lwe_size1);

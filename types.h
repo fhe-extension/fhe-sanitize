@@ -20,5 +20,5 @@ typedef lwe_sample *ksk;
 typedef tgsw_sample *bsk;
 
 /* Sanitization keys */
-typedef tlwe_sample *pkg;//m encryptions of 0
-//typedef tlwe_sample epk;//Linear combination of m encryptions of 0 // Same as tlwe_sample
+typedef tlwe_sample *pks; // public keys for statistical rerandomization
+typedef uint64_t *pkc; // public keys for computational rerandomization

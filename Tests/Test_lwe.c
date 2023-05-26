@@ -29,8 +29,8 @@ int main(int argc, char const *argv[])
 /*	for (int i = 0; i < _lwe_size1-1; ++i)
 		printf("%I64u\n",skenc[i]);*/
 	const int lwe_M = 2;
-	const int LWE_SIZE_PRIME = 2048;
-	const int LWE_SIZE = 612;
+	const int LWE_SIZE_PRIME = 1024;
+	const int LWE_SIZE = 538;
 	
 	lwe_sk s = lwe_keygen(LWE_SIZE);//cle nouvelle
 
@@ -70,7 +70,7 @@ int main(int argc, char const *argv[])
 
 	if (TEST_KS) {
 		start_chrono();
-		ksk ksk = generate_ksk(ss, s, powl(2.0L,49.0L), LWE_SIZE_PRIME, LWE_SIZE);
+		ksk ksk = generate_ksk(ss, s, powl(2.0L,50.4L), LWE_SIZE_PRIME, LWE_SIZE);
 		accum_gen += stop_chrono();
 		for(int try = 0; try < n_test; ++try) {
 			m = rand()%lwe_M;

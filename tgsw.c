@@ -104,14 +104,14 @@ void bsk_clear(bsk bsk, size_t n)
 	free(bsk);
 }
 
-tlwe_sample external_product(tlwe_sample tlwe, tgsw_sample tgsw, long double param)
+tlwe_sample external_product(tlwe_sample tlwe, tgsw_sample tgsw)
 {
 	tlwe_sample out;
 	tlwe_sample_init(&out);
 	uint64_t* decomposed = (uint64_t *) malloc((_k+1) * _ell * _N * sizeof(uint64_t));
 	size_t i, j;
 
-	gaussian_ginv_poly_vector(decomposed, tlwe, param, _k+1);
+	gaussian_ginv_poly_vector(decomposed, tlwe, _k+1);
 
 	for(i = 0; i < (_k+1)*_N; ++i) 
 			out[i] = 0;
@@ -123,12 +123,12 @@ tlwe_sample external_product(tlwe_sample tlwe, tgsw_sample tgsw, long double par
 	return out;
 }
 
-void accum_external_product(tlwe_sample out, tlwe_sample tlwe, tgsw_sample tgsw, long double param)
+void accum_external_product(tlwe_sample out, tlwe_sample tlwe, tgsw_sample tgsw)
 {
 	uint64_t* decomposed = (uint64_t *) malloc((_k+1) * _ell * _N * sizeof(uint64_t));
 	size_t i, j;
 
-	gaussian_ginv_poly_vector(decomposed, tlwe, param, _k+1);
+	gaussian_ginv_poly_vector(decomposed, tlwe, _k+1);
 
 	for(i = 0; i < (_k+1); ++i) // Column number in the matrix
 		for (j = 0; j<(_k+1)*_ell; ++j) // Row number in the matrix
@@ -138,7 +138,7 @@ void accum_external_product(tlwe_sample out, tlwe_sample tlwe, tgsw_sample tgsw,
 }
 
 
-tlwe_sample blind_rotate(lwe_sample lwe, long double param, int M, size_t n, uint64_t* testv, tgsw_sample *bsk)
+tlwe_sample blind_rotate(lwe_sample lwe, int M, size_t n, uint64_t* testv, tgsw_sample *bsk)
 {		
 	size_t max=_k*_N; 
 	size_t _2N=2*_N;
@@ -294,7 +294,7 @@ tlwe_sample blind_rotate(lwe_sample lwe, long double param, int M, size_t n, uin
 //		printf("Before ext prod\n");
 //		system("pause");
 
-		accum_external_product(out, tmp_acc, bsk[i], param);
+		accum_external_product(out, tmp_acc, bsk[i]);
 	}
 
 
@@ -309,7 +309,7 @@ tlwe_sample blind_rotate(lwe_sample lwe, long double param, int M, size_t n, uin
 
 
 
-void bootstrap(lwe_sample ct, bsk bsk, ksk ksk, long double param, int M_out, size_t n)
+void bootstrap(lwe_sample ct, bsk bsk, ksk ksk, int M_out, size_t n)
 {
 	uint64_t* test_vector=(uint64_t *) malloc(_N * sizeof(uint64_t));
    
@@ -335,7 +335,7 @@ void bootstrap(lwe_sample ct, bsk bsk, ksk ksk, long double param, int M_out, si
 		test_vector[i] = _two64_double/M_out;*/
 	printf("Entering blind_rotate...\n");
 	
-	tlwe_sample tmp_tlwe = blind_rotate(ct, param, M_out,n,test_vector,bsk);
+	tlwe_sample tmp_tlwe = blind_rotate(ct, M_out,n,test_vector,bsk);
 
 	tmp_tlwe[_k * _N] += _two64_double / 8;
 

@@ -3,6 +3,7 @@
 //#include <stdlib.h>
 //#include <stdio.h>	
 //#include <string.h>
+#include <string.h> 
 
 //#include "polynomial.h"
 //#include "types.h"
@@ -31,12 +32,12 @@ void multiply_accumulate_poly(uint64_t *out, uint64_t *a, uint64_t *b);
 void decompose_tlwe(uint64_t *out, tlwe_sample in);
 
 /* Encrypts polynomial m using key sk, message space M and noise parameter/stdev param */
-tlwe_sample tlwe_encrypt(tlwe_sk sk, long double param, int M, int* m);
 void tlwe_encrypt_over(tlwe_sample ct, tlwe_sk sk, long double param, int M, int* m);
-tlwe_sample tlwe_encrypt_zero(tlwe_sk sk, long double param);
+tlwe_sample tlwe_encrypt(tlwe_sk sk, long double param, int M, int* m);
 void tlwe_encrypt_zero_over(tlwe_sample ct, tlwe_sk sk, long double param);
-tlwe_sample tlwe_encrypt_zero_gaussian(tlwe_sk sk, long double param);
-void tlwe_encrypt_zero_gaussian_over(tlwe_sample ct, tlwe_sk sk, long double param);
+tlwe_sample tlwe_encrypt_zero(tlwe_sk sk, long double param);
+void tlwe_encrypt_zero_gaussian_over(tlwe_sample ct, tlwe_sk sk, gaussian_param_t param);
+tlwe_sample tlwe_encrypt_zero_gaussian(tlwe_sk sk, gaussian_param_t param);
 
 /* Decrypts ciphertext ct using key sk, message space M */
 int* tlwe_decrypt(tlwe_sk sk, int M, tlwe_sample ct);
@@ -49,12 +50,16 @@ lwe_sample tlwe_extract(tlwe_sample in);
 void tlwe_extract_over_and_keep(lwe_sample out, tlwe_sample in);
 
 /* Generates public keys necessary for sanitization of ciphertexts */
-pkg sanitize_pk_gen(tlwe_sk tsk, long double param);
-void sanitize_pk_clear(pkg PK);
+// No longer required -> pkc is fft and pks is lwe
+//pkg sanitize_pkc_gen(tlwe_sk tsk, long double param);
+//void sanitize_pkc_clear(pkg PK);
 
 /* Generates a well distributed TLWE encryption of 0 and adds it to the ciphertext */
-void sanitize_pk_enc(tlwe_sample ct, pkg PK);
+// No longer required
+//void sanitize_pk_enc(tlwe_sample ct, pkg PK);
 
 /* Initialize and generates a pool of encryptions of 0 for use in sanitization */
-void precompute_pkenc(pkg PK);
-void clear_pkenc();
+// No longer required
+// void precompute_pkenc(pkg PK);
+// void clear_pkenc();
+

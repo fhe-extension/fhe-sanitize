@@ -6,19 +6,15 @@
 
 void myprint(uint64_t number)
 {
-#ifdef _WIN32
-	printf("%Iu\n", number);
-#else
-	printf("%llu\n", number);
-#endif
+  printf(PRIu64 "\n", number);
 }
 
-void totalup(uint64_t count, size_t numSamples)
+void totalup(int count, size_t numSamples)
 {
 #ifdef _WIN32
 	printf("I got %Iu ones out of %Iu samples\n",count,numSamples);
 #else
-	printf("I got %llu ones out of %zu samples\n",count,numSamples);
+	printf("I got %u ones out of %zu samples\n",count,numSamples);
 #endif
 }
 

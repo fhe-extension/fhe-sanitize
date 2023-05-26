@@ -24,7 +24,7 @@ void totalup(double count, size_t numSamples)
 
 int main()
 {
-	size_t numSamples = 1000;
+	size_t numSamples = 1000000;
 
 	double input;
 	printf("Choose param : ");
@@ -48,14 +48,16 @@ int main()
 	for (i = 0; i < numSamples; ++i)
 	{
 		myprint((double)randomv[i]);
-		count += randomv[i];
+		count += roundl(randomv[i])*roundl(randomv[i]);
 	}
 
 	free(randomv);
 		
 	printf("Done !\n");
 
-	totalup((double)count,numSamples);
+        long double real_variance = (double)count/numSamples;
+	totalup(real_variance,numSamples);
+        printf("Expected : %lf, Difference : %lf, Relative Difference %lf\n", (double) (param*param),(double) (real_variance-param*param),(double) ((real_variance-param*param)/real_variance));
 
 	printf("Now, odd number of samples\n");
 
@@ -66,7 +68,7 @@ int main()
 	
 	for (i = 0; i < numSamples; ++i)
 	{
-		myprint((double)randomv[i]);
+		//myprint((double)randomv[i]);
 		count += randomv[i];
 	}
 
