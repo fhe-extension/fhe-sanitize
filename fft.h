@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <fftw3.h>
+
 #include "tgsw.h"
 
 typedef fftwl_complex* tlwe_sk_fft;

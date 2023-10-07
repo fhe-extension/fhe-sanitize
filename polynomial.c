@@ -151,7 +151,7 @@ void poly_multiply_naive_aux(uint64_t *result, uint64_t *op1,uint64_t *op2,size_
 void print_polynomial(polynomial_t p,size_t len)
 {
 	for(size_t i = 0; i < len; ++i) {
-		printf("%lu  ", p.coeffs[i]);
+		printf("%llu  ", p.coeffs[i]);
 	}
 	printf("\n");
 }

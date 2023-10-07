@@ -59,6 +59,43 @@ void random_binary_vector(uint64_t *out, size_t len)
 		out[i] = out[i] >> 63;
 }
 
+void random_binary_vector_int64(int64_t *out, size_t len)
+{
+	uniform64_distribution_vector_int64(out, len);
+	size_t i;
+	for (i=0; i<len; ++i)
+		out[i] = out[i] >> 63;
+}
+
+void uniform64_distribution_int64(int64_t *out)
+{
+	#ifdef _WIN32
+	RtlGenRandom((PVOID) out,(ULONG) sizeof(int64_t));
+    #else// __unix__ __macos__
+    int fd=open("/dev/urandom", O_RDONLY);
+
+	read(fd,out,sizeof(int64_t));
+
+	close(fd);
+    #endif
+}
+
+
+void uniform64_distribution_vector_int64(int64_t *out, size_t len)
+{
+	#ifdef _WIN32
+	RtlGenRandom((PVOID) out,(ULONG) len*sizeof(int64_t));
+	#else// __unix__ __macos__
+	int fd=open("/dev/urandom", O_RDONLY);
+	read(fd,out,len*sizeof(int64_t));
+	close(fd);
+    #endif
+}
+
+
+
+
+
 //uniform distrib between 0 and 2^64-1
 void uniform64_distribution(uint64_t *out)
 {

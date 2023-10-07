@@ -310,16 +310,17 @@ void tlwe_sample_extract(lwe_sample *out, tlwe_sample in, size_t k, size_t N)
 }
 */
 //n=kN
+//changement
 lwe_sk tlwe_key_extract(tlwe_sk in)
 {
 	int sk_pos = 0;
-	lwe_sk sk_out = (uint64_t *) malloc(_k * _N * sizeof(uint64_t));
+	lwe_sk sk_out = (int64_t *) malloc(_k * _N * sizeof(int64_t));
 	// k*N=n-1
 	// concatenate the coefficients of the secret key polynomials
 	//of size k*N
 	for(int i = 0; i < _k; ++i) {
 		for(int j = 0; j < _N; ++j) {
-			sk_out[sk_pos++] = (uint64_t) in[i*_N+j]; 
+			sk_out[sk_pos++] = (int64_t) in[i*_N+j]; 
 		}
 	}
 	return sk_out;

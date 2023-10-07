@@ -6,7 +6,7 @@
 
 /* LWE types */
 typedef uint64_t *lwe_sample;
-typedef uint64_t *lwe_sk;
+typedef int64_t *lwe_sk;
 
 /* TLWE types */
 typedef uint64_t *tlwe_sample;

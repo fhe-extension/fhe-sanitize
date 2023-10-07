@@ -1,23 +1,13 @@
 //#pragma once
-#include <stdio.h>	
+#include <stdio.h>
 
 #include "../random.h"
 
 
-void myprint(uint64_t number)
-{
-	printf("%lld\n", (long long) number);
-}
-
-void totalup(uint64_t count, size_t numSamples)
-{
-	printf("The sum is %" PRId64 " ",count);
-        printf("out of %zu samples\n",numSamples);
-}
 
 int main()
 {
-	size_t numSamples = 1000;
+	size_t numSamples = 1000000;
 
 	double input;
 	printf("Choose param : ");
@@ -31,26 +21,26 @@ int main()
 	uint64_t random;
 	gaussian_overZ(&random, p);
 
-	myprint((int64_t)random);
+        printf("%llu\n", (long long int) random);
 
 	printf("Vector :\n");
 	uint64_t *randomv = (uint64_t *) malloc(numSamples * sizeof(uint64_t));
 	gaussian_overZ_vector(randomv, p, numSamples);
-	
+
 	size_t i;
 	uint64_t count = 0;
 	for (i = 0; i < numSamples; ++i)
 	{
-		myprint((int64_t)randomv[i]);
+		printf("%llu\n", (long long int) randomv[i]);
 		count += randomv[i]*randomv[i];
 	}
 
 	free(randomv);
-		
+
 	printf("Done !\n");
 
-	totalup((int64_t)count/numSamples,numSamples);
-
+	printf("Observed variance : %Lf\n",(long double) count/numSamples);
+        printf("Expected : %Lf\n", (param*param)/(2*acos(-1.0L)));
 
 	clear_random();
 

@@ -3,7 +3,10 @@
 #include <stdlib.h>
 
 #include <complex.h>
-#include <fftw3.h>
+
+#include "../clock.h"
+#include "../fft.h"
+
 
 int main()
 {

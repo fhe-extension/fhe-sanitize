@@ -33,9 +33,17 @@ typedef struct gaussian_param gaussian_param_t;
 void random_binary(uint64_t *out);
 void random_binary_vector(uint64_t *out, size_t len);
 
+void random_binary_vector_int64(int64_t *out, size_t len);
+void uniform64_distribution_int64(int64_t *out);
+void uniform64_distribution_vector_int64(int64_t *out, size_t len);
+
+
 //uniform distrib between 0 and 2^64-1
 void uniform64_distribution(uint64_t *out);
 void uniform64_distribution_vector(uint64_t *out, size_t len);
+
+
+
 
 //uniform distrib between 0 and 1
 void random_double(long double *out);

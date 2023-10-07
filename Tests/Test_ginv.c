@@ -9,7 +9,7 @@ void myprint(uint64_t number)
 #ifdef _WIN32
 	printf("%I64d\n", number);
 #else
-	printf("%ld\n", number);
+	printf("%llu\n", number);
 #endif
 }
 
@@ -18,7 +18,7 @@ void totalup(uint64_t count, size_t numSamples)
 #ifdef _WIN32
 	printf("The sum is %I64u out of %Iu samples\n",count,numSamples);
 #else
-	printf("The sum is %lu out of %zu samples\n",count,numSamples);
+	printf("The sum is %llu out of %zu samples\n",count,numSamples);
 #endif
 }
 

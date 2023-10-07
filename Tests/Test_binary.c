@@ -6,7 +6,7 @@
 
 void myprint(uint64_t number)
 {
-  printf(PRIu64 "\n", number);
+  printf("%llu\n", (unsigned long long int) number);
 }
 
 void totalup(int count, size_t numSamples)

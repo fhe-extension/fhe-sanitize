@@ -14,6 +14,7 @@ void lwe_sample_zero(lwe_sample ct, size_t n);
 /* Binary secret key of size n allocation, generation and freeing */
 void lwe_sk_init(lwe_sk *s, size_t n);
 lwe_sk lwe_keygen(size_t n);
+lwe_sk lwe_gaussian_keygen(size_t n, long double param);
 void lwe_sk_clear(lwe_sk s);
 
 /* Encrypts message mu under secret key s with message space M and noise parameter param, n is the dimension */
@@ -22,7 +23,7 @@ void lwe_encrypt_over(lwe_sample ct, lwe_sk s, int M, long double param, int mu,
 
 /* Decrypts ciphertext ct with secret key s and message space M, n is the dimension */
 int lwe_decrypt(lwe_sk s, int M, lwe_sample ct, size_t n);
-int lwe_decrypt_and_keep(lwe_sk s, int M, lwe_sample ct, size_t n);
+int lwe_decrypt_and_keep(lwe_sk s, int M, lwe_sample ct, size_t n, long double *err);
 
 /* Generation and freeing of key switching keys */
 ksk generate_ksk(lwe_sk sk_in, lwe_sk sk_out, long double param, size_t n_in, size_t n_out);

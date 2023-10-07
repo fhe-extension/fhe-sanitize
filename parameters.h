@@ -11,9 +11,9 @@
 #define _ell 7
 
 /* Parameters for Key switching */
-#define _Bks 2
-#define _logBks 1
-#define _t 11
+#define _Bks 4
+#define _logBks 2
+#define _t 7
 
 /* Parameters for Public key encryption */
 //#define _m 10

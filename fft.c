@@ -271,7 +271,7 @@ lwe_sk tlwe_key_extract_fft(tlwe_sk_fft in)
 	return out;
 }
 
-/* Old */
+/* Statistically private randomizer */
 /*pkg sanitize_pk_gen_fft(tlwe_sk_fft tsk, long double param)
 {
 	pkg PK = (tlwe_sample *) malloc(_m * sizeof(tlwe_sample));

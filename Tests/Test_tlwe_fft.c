@@ -104,7 +104,8 @@ int main(int argc, char const *argv[])
 			accum_ext += stop_chrono();
 			
 			//n --> n-1=k*N
-			ext_m = lwe_decrypt_and_keep(ext_key, TLWE_MSG_SPACE, ext_ct, _k * _N);
+                        long double err;
+			ext_m = lwe_decrypt_and_keep(ext_key, TLWE_MSG_SPACE, ext_ct, _k * _N, &err);
 			//int rounded= m[0];
 			//printf("%d", rounded); printf(" and "); printf("%d", ext_m); printf("\n");
 			

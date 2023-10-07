@@ -49,6 +49,7 @@ lwe_sk tlwe_key_extract(tlwe_sk in);
 lwe_sample tlwe_extract(tlwe_sample in);
 void tlwe_extract_over_and_keep(lwe_sample out, tlwe_sample in);
 
+
 /* Generates public keys necessary for sanitization of ciphertexts */
 // No longer required -> pkc is fft and pks is lwe
 //pkg sanitize_pkc_gen(tlwe_sk tsk, long double param);
