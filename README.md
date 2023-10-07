@@ -8,4 +8,9 @@ Depending on the directory, you might need to change the path and the FLAGS in t
 
 We provide unitary tests for each function in the Test directory. 
 
-The sanitize algorithm is implemented in the fft.c file. You can test it using ./Tests/Test_bootstrapping_fft
+The sanitize algorithm is implemented in the fft.c file. You can test it using:
+
+ - ./Tests/Test_sanitizing_fft	for the sanitization algorithm
+
+ - ./Tests/Test_bootstrapping_fft for the bootstrapping (without sanitization)
+
