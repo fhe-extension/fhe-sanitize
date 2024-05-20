@@ -22,7 +22,7 @@
 
 //Gaussian parameters, including auxilliary inputs to the sampler
 struct gaussian_param {
-  long double param;
+  double param;
   size_t target;
   uint64_t* z;
   uint64_t adjust;
@@ -33,32 +33,24 @@ typedef struct gaussian_param gaussian_param_t;
 void random_binary(uint64_t *out);
 void random_binary_vector(uint64_t *out, size_t len);
 
-void random_binary_vector_int64(int64_t *out, size_t len);
-void uniform64_distribution_int64(int64_t *out);
-void uniform64_distribution_vector_int64(int64_t *out, size_t len);
-
-
 //uniform distrib between 0 and 2^64-1
 void uniform64_distribution(uint64_t *out);
 void uniform64_distribution_vector(uint64_t *out, size_t len);
 
-
-
-
 //uniform distrib between 0 and 1
-void random_double(long double *out);
-void random_double_vector(long double *out, size_t len);
+void random_double(double *out);
+void random_double_vector(double *out, size_t len);
 
 //Noise distribution
-void noise(long double *out, long double param);
-void noise_vector(long double *out, long double param, size_t len);
+void noise(double *out, double param);
+void noise_vector(double *out, double param, size_t len);
 
 //auxiliary inputs to call discrete Gaussian sampler
-gaussian_param_t gaussian(long double param);
+gaussian_param_t gaussian(double param);
 
 //Gaussian over Z
-void small_gaussian_overZ(uint64_t *out, long double param);
-void small_gaussian_overZ_vector(uint64_t *out, long double param, size_t len);
+void small_gaussian_overZ(uint64_t *out, double param);
+void small_gaussian_overZ_vector(uint64_t *out, double param, size_t len);
 void gaussian_overZ(uint64_t *out, gaussian_param_t param);
 void gaussian_overZ_vector(uint64_t *out, gaussian_param_t param, size_t len);
 

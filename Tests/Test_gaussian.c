@@ -13,7 +13,7 @@ int main()
 	printf("Choose param : ");
 	scanf("%lf", &input);
 
-	long double param = (long double) input;
+	double param = (double) input;
         gaussian_param_t p = gaussian(param);
 
 	printf("Single :\n");
@@ -39,8 +39,8 @@ int main()
 
 	printf("Done !\n");
 
-	printf("Observed variance : %Lf\n",(long double) count/numSamples);
-        printf("Expected : %Lf\n", (param*param)/(2*acos(-1.0L)));
+	printf("Observed variance : %lf\n",(double) count/numSamples);
+        printf("Expected : %lf\n", (param*param)/(2*acos(-1.0L)));
 
 	clear_random();
 

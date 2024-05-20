@@ -17,7 +17,7 @@ BOOLEAN NTAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength); // Use
 
 //Definition of constants
 #define TWO_64_MINUS_1 (*(uint64_t*) "\xff\xff\xff\xff\xff\xff\xff\xff")
-//long double TWO_64_MINUS_1L = powl(2.0L, 64.0L)-1;
+//double TWO_64_MINUS_1L = powl(2.0L, 64.0L)-1;
 
 #ifndef M_PI
 #define M_PI acosl(-1.0)
@@ -26,8 +26,8 @@ BOOLEAN NTAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength); // Use
 //Structures and global variables for precomputations
 struct gaussian_CDT
 {
-  long double param;
-  long double* table;
+  double param;
+  double* table;
   size_t size;
 };
 struct gaussian_CDT CDT; // pointer table is initialized to NULL
@@ -59,43 +59,6 @@ void random_binary_vector(uint64_t *out, size_t len)
 		out[i] = out[i] >> 63;
 }
 
-void random_binary_vector_int64(int64_t *out, size_t len)
-{
-	uniform64_distribution_vector_int64(out, len);
-	size_t i;
-	for (i=0; i<len; ++i)
-		out[i] = out[i] >> 63;
-}
-
-void uniform64_distribution_int64(int64_t *out)
-{
-	#ifdef _WIN32
-	RtlGenRandom((PVOID) out,(ULONG) sizeof(int64_t));
-    #else// __unix__ __macos__
-    int fd=open("/dev/urandom", O_RDONLY);
-
-	read(fd,out,sizeof(int64_t));
-
-	close(fd);
-    #endif
-}
-
-
-void uniform64_distribution_vector_int64(int64_t *out, size_t len)
-{
-	#ifdef _WIN32
-	RtlGenRandom((PVOID) out,(ULONG) len*sizeof(int64_t));
-	#else// __unix__ __macos__
-	int fd=open("/dev/urandom", O_RDONLY);
-	read(fd,out,len*sizeof(int64_t));
-	close(fd);
-    #endif
-}
-
-
-
-
-
 //uniform distrib between 0 and 2^64-1
 void uniform64_distribution(uint64_t *out)
 {
@@ -123,28 +86,28 @@ void uniform64_distribution_vector(uint64_t *out, size_t len)
 
 
 //uniform distrib between 0 and 1
-void random_double(long double *out)
+void random_double(double *out)
 {
 	uint64_t tmp;
 	uniform64_distribution(&tmp);
-	*out = tmp / (long double) TWO_64_MINUS_1;
+	*out = tmp / (double) TWO_64_MINUS_1;
 }
-void random_double_vector(long double *out, size_t len)
+void random_double_vector(double *out, size_t len)
 {
 	uint64_t *tmp = (uint64_t*) malloc(len * sizeof(uint64_t));
 	uniform64_distribution_vector(tmp, len);
 	size_t i;
 	for (i=0; i<len; ++i)
-		out[i] = tmp[i] / (long double) TWO_64_MINUS_1;
+		out[i] = tmp[i] / (double) TWO_64_MINUS_1;
 	free(tmp);
 }
 
 //Noise distribution
-void noise(long double *out, long double param)
+void noise(double *out, double param)
 {
 	uint64_t coin;
 	random_binary(&coin);
-	long double tmp;
+	double tmp;
 	random_double(&tmp);
 	if (coin)
 		tmp = param * sqrtl(-2. * logl(tmp));
@@ -154,9 +117,9 @@ void noise(long double *out, long double param)
 }
 
 
-void noise_vector(long double *out, long double param, size_t len)
+void noise_vector(double *out, double param, size_t len)
 {
-	long double *tmp = (long double*) malloc(len * sizeof(long double));
+	double *tmp = (double*) malloc(len * sizeof(double));
 	random_double_vector(tmp, len);
 	size_t i;
 	for (i=0; i<len-1; i+=2) {
@@ -171,16 +134,16 @@ void noise_vector(long double *out, long double param, size_t len)
 }
 
 //Gaussian over Z
-long double *compute_CDT(long double param)
+double *compute_CDT(double param)
 {
   size_t size = 2*_tail_cut*param;
-  long double *table = (long double*) malloc (size * sizeof(long double));
+  double *table = (double*) malloc (size * sizeof(double));
   size_t i;
-  long double norm = 0.0L;
+  double norm = 0.0L;
 
   for (i=0; i<size; ++i)
     {
-      norm += expl(- M_PI * powl(((long double) ((int64_t) (i-size/2))/(param)),2.0L));
+      norm += expl(- M_PI * powl(((double) ((int64_t) (i-size/2))/(param)),2.0L));
       table[i] = norm;
     }
 
@@ -192,25 +155,25 @@ long double *compute_CDT(long double param)
   return table;
 }
 
-void precompute_CDT(long double param) {
+void precompute_CDT(double param) {
   CDT.param = param;
   CDT.size = 2*_tail_cut*param;
-  CDT.table = compute_CDT(param); //(long double*) malloc (CDT.size * sizeof(long double));
+  CDT.table = compute_CDT(param); //(double*) malloc (CDT.size * sizeof(double));
 }
 
-/*size_t target(long double param) {
-  long double pp = param * param;
+/*size_t target(double param) {
+  double pp = param * param;
   size_t t = 0;
   while (CDT.ss[t] < pp) t++;
   return t-1;
 }
 
-uint64_t adjust(long double param, size_t target) {
+uint64_t adjust(double param, size_t target) {
   return 1+(1.0L+sqrtl(2*param*param/CDT.ss[target-1]-1))/2.0L;
 }*/
 
-gaussian_param_t gaussian(long double param) {
-  long double ssi, next;
+gaussian_param_t gaussian(double param) {
+  double ssi, next;
   uint64_t zi; size_t t;
 
   for(size_t s0 = 34; s0 <= 512; ++s0){
@@ -254,9 +217,9 @@ void clear_CDT()
 	}
 }
 
-void small_gaussian_overZ(uint64_t *out, long double param)
+void small_gaussian_overZ(uint64_t *out, double param)
 {
-  long double *table;
+  double *table;
   size_t size;
   if (CDT.param == param) {//We want to sample from the precomputed gaussian parameter
     table = CDT.table;
@@ -267,7 +230,7 @@ void small_gaussian_overZ(uint64_t *out, long double param)
     size = 2*_tail_cut*param;
   }
 
-  long double coin;
+  double coin;
   random_double(&coin);
 
   size_t a = 0;
@@ -284,9 +247,9 @@ void small_gaussian_overZ(uint64_t *out, long double param)
   *out = b-size/2;
 }
 
-void small_gaussian_overZ_vector(uint64_t *out, long double param, size_t len)
+void small_gaussian_overZ_vector(uint64_t *out, double param, size_t len)
 {
-  long double *table;
+  double *table;
   size_t size;
   if (CDT.param == param) {//We want to sample from the precomputed gaussian parameter
     table = CDT.table;
@@ -297,7 +260,7 @@ void small_gaussian_overZ_vector(uint64_t *out, long double param, size_t len)
     size = 2*_tail_cut*param;
   }
 
-  long double *coin = (long double*) malloc (len * sizeof(long double));
+  double *coin = (double*) malloc (len * sizeof(double));
   random_double_vector(coin, len);
 
   size_t i;

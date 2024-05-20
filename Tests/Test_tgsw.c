@@ -21,7 +21,7 @@ int main(int argc, char const *argv[])
 {
 	// allocate memory and create FFT 'plans'
 	double accum_rnd = 0, accum_enc = 0, accum_dec = 0;
-	long double param = (uint64_t) 1 << (64 - _logBg - 4);
+	double param = (uint64_t) 1 << (64 - _logBg - 4);
 
 	tlwe_sk sk = tlwe_keygen();
 

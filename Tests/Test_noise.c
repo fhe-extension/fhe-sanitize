@@ -30,21 +30,21 @@ int main()
 	printf("Choose param : ");
 	scanf("%lf", &input);
 
-	long double param = (long double) input;
+	double param = (double) input;
 
 	printf("Single :\n");
 
-	long double random;
+	double random;
 	noise(&random, param);
 
 	myprint((double)random);
 
 	printf("Vector :\n");
-	long double *randomv = (long double *) malloc(numSamples * sizeof(long double));
+	double *randomv = (double *) malloc(numSamples * sizeof(double));
 	noise_vector(randomv, param, numSamples);
 	
 	size_t i;
-	long double count = 0;
+	double count = 0;
 	for (i = 0; i < numSamples; ++i)
 	{
 		myprint((double)randomv[i]);
@@ -55,7 +55,7 @@ int main()
 		
 	printf("Done !\n");
 
-        long double real_variance = (double)count/numSamples;
+        double real_variance = (double)count/numSamples;
 	totalup(real_variance,numSamples);
         printf("Expected : %lf, Difference : %lf, Relative Difference %lf\n", (double) (param*param),(double) (real_variance-param*param),(double) ((real_variance-param*param)/real_variance));
 
@@ -63,7 +63,7 @@ int main()
 
 	++numSamples;
 
-	randomv = (long double *) malloc(numSamples * sizeof(long double));
+	randomv = (double *) malloc(numSamples * sizeof(double));
 	noise_vector(randomv, param, numSamples);
 	
 	for (i = 0; i < numSamples; ++i)

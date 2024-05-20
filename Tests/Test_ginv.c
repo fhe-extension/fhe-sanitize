@@ -36,7 +36,7 @@ int main()
 	printf("Choose param : ");
 	scanf("%lf", &input);
 
-	long double param = (long double) input;
+	double param = (double) input;
         gaussian_param_t p = gaussian(param);
         precompute_random(p);
 

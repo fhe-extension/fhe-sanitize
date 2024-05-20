@@ -6,12 +6,12 @@
 /* Where M is a bound on the message space */
 /* Memory is allocated during key generation and decryption */
 /* Memory is deallocated during decryption */
-/* Key switching deallocates input and allocates memory for output ciphertext */
-/* Variants of KS, Enc, and Dec that do not allocate or free memory are proposed*/
+/* Key switching deallocates input and allocate memory for output ciphertext */
+/* Variants of KS, Enc, and Dec are proposed that do not allocate or free memory */
 
 #include "lwe.h"
 
-/* Value of 2^64 as a long double, used during encryption */
+/* Value of 2^64 as a double, used during encryption */
 #define _two64_double powl(2.0L,64.0L) 
 
 
@@ -29,7 +29,7 @@ void lwe_sample_clear(lwe_sample ct)
 /* Functions that manage the memory usage of secret keys */
 void lwe_sk_init(lwe_sk *s, size_t n)
 {
-	*s = (lwe_sk) malloc (n * sizeof(uint64_t)); // Keys are size n
+	*s = (lwe_sk) malloc (n * sizeof(int64_t)); // Keys are size n
 }
 void lwe_sk_clear(lwe_sk sk)
 {
@@ -50,16 +50,16 @@ void lwe_sample_zero(lwe_sample ct, size_t n)
 lwe_sk lwe_keygen(size_t n)
 {
 	lwe_sk s;
-  lwe_sk_init(&s, n);
+    lwe_sk_init(&s, n);
 	random_binary_vector(s, n);
 	return s;
 }
 
-lwe_sk lwe_gaussian_keygen(size_t n, long double param)
+lwe_sk lwe_gaussian_keygen(size_t n, double param)
 {
   lwe_sk s;
   lwe_sk_init(&s, n);
-  long double *g = malloc(n*sizeof(long double));
+  double *g = malloc(n*sizeof(double));
   noise_vector(g, param, n);
   for (int i = 0; i < n; ++i)
     s[i] = g[i];
@@ -68,12 +68,12 @@ lwe_sk lwe_gaussian_keygen(size_t n, long double param)
 }
 
 /* Encrypt without allocating memory */
-void lwe_encrypt_over(lwe_sample ct, lwe_sk s, int M, long double param, int mu, size_t n)
+void lwe_encrypt_over(lwe_sample ct, lwe_sk s, int M, double param, int mu, size_t n)
 {
   mu = mu % M;
   if (mu < 0) mu += M;
   uniform64_distribution_vector(ct, n);
-  long double e;
+  double e;
   noise(&e, param);
   ct[n] = (uint64_t) (e + (mu * _two64_double)/M);
   size_t i;
@@ -83,7 +83,7 @@ void lwe_encrypt_over(lwe_sample ct, lwe_sk s, int M, long double param, int mu,
 }
 
 /* Generates a ciphertext for message m with message space M and error parameter param and outputs it */
-lwe_sample lwe_encrypt(lwe_sk s, int M, long double param, int mu, size_t n)
+lwe_sample lwe_encrypt(lwe_sk s, int M, double param, int mu, size_t n)
 {
 	lwe_sample ct;
 	lwe_sample_init(&ct, n);
@@ -105,25 +105,25 @@ int lwe_decrypt(lwe_sk s, int M, lwe_sample ct, size_t n)
 
   lwe_sample_clear(ct);
 
-    return (int) (((long double) b * M) / _two64_double + 0.5);
+    return (int) (((double) b * M) / _two64_double + 0.5);
 }
 
 /* Decrypt without freeing the ciphertext */
-int lwe_decrypt_and_keep(lwe_sk s, int M, lwe_sample ct, size_t n, long double *err)
+int lwe_decrypt_and_keep(lwe_sk s, int M, lwe_sample ct, size_t n, double *err)
 {
   uint64_t b = ct[n];
   size_t i;
   for (i = 0; i < n; ++i){
     b -= ct[i] * s[i];
   }
-  long double m = roundl(((long double) b * M) / _two64_double);
-  *err = (((long double) b) - _two64_double * (long double) m / M) / _two64_double;
+  double m = roundl(((double) b * M) / _two64_double);
+  *err = (((double) b) - _two64_double * (double) m / M) / _two64_double;
 
-  return (int) (((long double) b * M) / _two64_double + 0.5);
+  return (int) (((double) b * M) / _two64_double + 0.5);
 }
 
 /* Generates a key switching key and outputs it */
-ksk generate_ksk(lwe_sk sk_in, lwe_sk sk_out, long double param, size_t n_in, size_t n_out)
+ksk generate_ksk(lwe_sk sk_in, lwe_sk sk_out, double param, size_t n_in, size_t n_out)
 {
 	ksk ksk = (lwe_sample*) malloc(n_in * _t * sizeof(lwe_sample));;
 	size_t i, j;
@@ -187,7 +187,7 @@ void keyswitch_over_and_keep(lwe_sample out, ksk ksk, size_t n_in, size_t n_out,
       ai -= aij;
       ai >>= _logBks;
     }
-    //printf("ai : %lld, in[i] : %lld, approx : %lld\n", ai, in[i], approx);
+    //printf("ai done : %lld, in[i] : %lld, approx : %lld\n", ai, in[i], approx);
   }
 }
 

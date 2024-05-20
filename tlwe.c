@@ -89,14 +89,14 @@ free(tmpa);
 }*/
 
 
-void tlwe_encrypt_over(tlwe_sample ct, tlwe_sk sk, long double param, int M, int *m)
+void tlwe_encrypt_over(tlwe_sample ct, tlwe_sk sk, double param, int M, int *m)
 {   
 	//tlwe_sample_zero(ct, k, N);
 
 	int max=_k*_N;
 
 	 //noise polynomial e
-    long double *e = (long double*) malloc(_N * sizeof(long double));
+    double *e = (double*) malloc(_N * sizeof(double));
 
     //b de taille N b=e gaussien
     noise_vector(e,param,_N);    
@@ -123,7 +123,7 @@ void tlwe_encrypt_over(tlwe_sample ct, tlwe_sk sk, long double param, int M, int
 		    	ct[max+coeff1] -= ct[poly*_N+coeff2]*sk[poly*_N+_N+coeff1-coeff2];
 		}
 }
-tlwe_sample tlwe_encrypt(tlwe_sk sk, long double param, int M, int *m)
+tlwe_sample tlwe_encrypt(tlwe_sk sk, double param, int M, int *m)
 {   
 	tlwe_sample ct;
 	tlwe_sample_init(&ct);
@@ -134,12 +134,12 @@ tlwe_sample tlwe_encrypt(tlwe_sk sk, long double param, int M, int *m)
 }
 
 
-void tlwe_encrypt_zero_over(tlwe_sample ct, tlwe_sk sk, long double param)
+void tlwe_encrypt_zero_over(tlwe_sample ct, tlwe_sk sk, double param)
 {   
 	int max=_k*_N;
 
 	//noise polynomial e
-    long double *e = (long double*) malloc(_N * sizeof(long double));
+    double *e = (double*) malloc(_N * sizeof(double));
 
     noise_vector(e,param,_N);    
 
@@ -163,7 +163,7 @@ void tlwe_encrypt_zero_over(tlwe_sample ct, tlwe_sk sk, long double param)
 		    	ct[max+coeff1] -= ct[poly*_N+coeff2]*sk[poly*_N+_N+coeff1-coeff2];
 		}
 }
-tlwe_sample tlwe_encrypt_zero(tlwe_sk sk, long double param)
+tlwe_sample tlwe_encrypt_zero(tlwe_sk sk, double param)
 {   
 	tlwe_sample ct;
 	tlwe_sample_init(&ct);
@@ -223,7 +223,7 @@ int* tlwe_decrypt(tlwe_sk sk, int M, tlwe_sample ct)
 		    	ct[max+coeff1] += ct[poly*_N+coeff2]*sk[poly*_N+_N+coeff1-coeff2];
 		}
 	for (coeff1 = 0; coeff1 < _N; ++coeff1)
-		m[coeff1]=(int)(((long double) M * ct[max+coeff1])/_two64_double + 0.5);
+		m[coeff1]=(int)(((double) M * ct[max+coeff1])/_two64_double + 0.5);
 	tlwe_sample_clear(ct);
 	return m;
 }
@@ -245,7 +245,7 @@ void tlwe_decrypt_over_and_keep(int* m, tlwe_sk sk, int M, tlwe_sample ct)
 		    	b[coeff1] += ct[poly*_N+coeff2]*sk[poly*_N+_N+coeff1-coeff2];
 		}
 	for (coeff1 = 0; coeff1 < _N; ++coeff1)
-		m[coeff1]=(int)(((long double) M * b[coeff1])/_two64_double + 0.5);
+		m[coeff1]=(int)(((double) M * b[coeff1])/_two64_double + 0.5);
 	free(b);
 }
 
@@ -310,7 +310,6 @@ void tlwe_sample_extract(lwe_sample *out, tlwe_sample in, size_t k, size_t N)
 }
 */
 //n=kN
-//changement
 lwe_sk tlwe_key_extract(tlwe_sk in)
 {
 	int sk_pos = 0;
@@ -352,7 +351,7 @@ void decompose_tlwe(uint64_t *out, tlwe_sample in)
        tlwe_sample_init(PK+i,k,N);
 }*/
 
-/*pkg sanitize_pkc_gen(tlwe_sk tsk, long double param) 
+/*pkg sanitize_pkc_gen(tlwe_sk tsk, double param) 
 {
 	pkg PK = (tlwe_sample *) malloc(_m * sizeof(tlwe_sample));
 	size_t i;
@@ -373,7 +372,7 @@ void sanitize_pkc_clear(pkg PK)
 	*UPK = (tlwe_sample) malloc (sizeof(tlwe_sample));
 }
 
-tlwe_encrypt_zero_over(tlwe_sample ct, tlwe_sk sk, long double param)
+tlwe_encrypt_zero_over(tlwe_sample ct, tlwe_sk sk, double param)
 
 void sanitize_epk_clear(epk UPK){
 	//for (i=0;i<m; i++) 
@@ -456,7 +455,7 @@ void clear_pkenc()
 
 */
 
-/*void sanitize_pkenc_gen(rerand PKenc,tlwe_sk tsk, long double param){
+/*void sanitize_pkenc_gen(rerand PKenc,tlwe_sk tsk, double param){
 
 	//rerand PKenc= (tlwe_sample *) malloc(sizeof(tlwe_sample));
 	//tlwe_sample_init(PKenc);
@@ -467,7 +466,7 @@ void clear_pkenc()
 	size_t max=_k*_N;
 	uint64_t *e1 = (uint64_t*) malloc(max * sizeof(uint64_t));
 	uint64_t *e2 = (uint64_t*) malloc(_N * sizeof(uint64_t));
-    //long double *e2 = (long double*) malloc(_N * sizeof(long double));
+    //double *e2 = (double*) malloc(_N * sizeof(double));
 	uint64_t *u = (uint64_t*) malloc(_N * sizeof(uint64_t));
 	
 	small_gaussian_overZ_vector(e1,param,max);

@@ -66,10 +66,10 @@ int main(int argc, char const *argv[])
 			accum_enc += stop_chrono();
 
 			
-			
+			double *err_N = malloc(_N*sizeof(double));
 			//gettimeofday(&_begin, NULL);
 			start_chrono();
-			tlwe_decrypt_over_and_keep_fft(mm, sk, TLWE_MSG_SPACE, ct);
+			tlwe_decrypt_over_and_keep_fft(mm, sk, TLWE_MSG_SPACE, ct, err_N);
 			for(int i = 0; i < _N; ++i) 
 			{
        			printf("%d", mm[i]);
@@ -77,6 +77,7 @@ int main(int argc, char const *argv[])
 			}
 			printf("\n"); printf("\n");printf("\n"); 
 			accum_dec += stop_chrono();
+                        free(err_N);
 
 			for (size_t i = 0; i < _N; ++i) 
 			{
@@ -104,7 +105,7 @@ int main(int argc, char const *argv[])
 			accum_ext += stop_chrono();
 			
 			//n --> n-1=k*N
-                        long double err;
+                        double err;
 			ext_m = lwe_decrypt_and_keep(ext_key, TLWE_MSG_SPACE, ext_ct, _k * _N, &err);
 			//int rounded= m[0];
 			//printf("%d", rounded); printf(" and "); printf("%d", ext_m); printf("\n");

@@ -3,7 +3,7 @@
 
 #include "../random.h"
 
-// NOTE : I cast the random elements to double because I was unable to easily print long double values.
+// NOTE : I cast the random elements to double because I was unable to easily print double values.
 void totalup(double count, size_t numSamples)
 {
 #ifdef _WIN32
@@ -19,17 +19,17 @@ int main()
 
 	printf("Single :\n");
 
-	long double random;
+	double random;
 	random_double(&random);
 
 	printf("%f\n", (double) random);
 
 	printf("Vector :\n");
-	long double *randomv = (long double *) malloc(numSamples * sizeof(long double));
+	double *randomv = (double *) malloc(numSamples * sizeof(double));
 	random_double_vector(randomv, numSamples);
 	
 	size_t i;
-	long double count = 0.;
+	double count = 0.;
 	for (i = 0; i < numSamples; ++i)
 	{
 		printf("%f\n",(double) randomv[i]);
