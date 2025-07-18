@@ -89,30 +89,39 @@ int main(int argc, char const *argv[])
 		//printf("Time for encryption: %f microseconds\n", (double) accum_enc / N_TRIES);
 		//printf("Time for decryption: %f microseconds\n", (double) accum_dec / N_TRIES);
 	if (TEST_EXTRACT) {
-		for (int try = 0; try < N_TRIES; ++try) {
-			srand((try%245)*11);
+          double stddev = powl(2.0L, -14.0L);
+          double var = 0.;
+          for (int try = 0; try < N_TRIES; ++try) {
+            srand((try%245)*11);
 
-			for (int j = 0; j < _N; ++j) {
-				m[j] = rand()% TLWE_MSG_SPACE;
-			}
-			tlwe_encrypt_over_fft(ct, sk, powl(2.0L,50.0L), TLWE_MSG_SPACE, m);
+
+            for (int j = 0; j < _N; ++j) {
+              m[j] = rand()% TLWE_MSG_SPACE;
+            }
+            
+
+            tlwe_encrypt_over_fft(ct, sk, stddev * powl(2.0L,64.0L), TLWE_MSG_SPACE, m);
 			
-			start_chrono();
+            start_chrono();
 			
 
 			
-			tlwe_extract_over_and_keep(ext_ct, ct);
-			accum_ext += stop_chrono();
+            tlwe_extract_over_and_keep(ext_ct, ct);
+            accum_ext += stop_chrono();
 			
-			//n --> n-1=k*N
-                        double err;
-			ext_m = lwe_decrypt_and_keep(ext_key, TLWE_MSG_SPACE, ext_ct, _k * _N, &err);
-			//int rounded= m[0];
-			//printf("%d", rounded); printf(" and "); printf("%d", ext_m); printf("\n");
+            //n --> n-1=k*N
+            double err;
+            ext_m = lwe_decrypt_and_keep(ext_key, TLWE_MSG_SPACE, ext_ct, _k * _N, &err);
+            var += err * err;
+            //int rounded= m[0];
+            //printf("%d", rounded); printf(" and "); printf("%d", ext_m); printf("\n");
 			
-			assert((m[0]%TLWE_MSG_SPACE)==(ext_m%TLWE_MSG_SPACE));
-	  	}
-		printf("Time for extracting an LWE sample: %f microseconds\n", (double) accum_ext/N_TRIES);
+            assert((m[0]%TLWE_MSG_SPACE)==(ext_m%TLWE_MSG_SPACE));
+          }
+          printf("Time for extracting an LWE sample: %f microseconds\n", (double) accum_ext/N_TRIES);
+          printf("Measured variance is : %lf\n", var / N_TRIES);
+          printf("Expected variance is : %lf\n", stddev * stddev);
+          printf("Relatice difference : %lf\n", var / N_TRIES / (stddev * stddev) - 1);
 	}
 
 	
@@ -121,6 +130,7 @@ int main(int argc, char const *argv[])
 	tlwe_sk_clear_fft(sk);
 	lwe_sk_clear(ext_key);
 	tlwe_sample_clear(ct);
+        lwe_sample_clear(ext_ct);
 
 	#ifdef _WIN32
 	system("pause"); // Pauses to actually see the output in windows

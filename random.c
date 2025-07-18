@@ -1,13 +1,21 @@
 //#pragma once
 
 #include "random.h"
-
 #define _target_max 4
 #define _tail_cut 6
 
-#define _init_fills 2000
-#define _pool_size 500000
-#define _sample_per_fill (_Bg * 250)
+#define _threads_number 2
+#ifdef _threads_number
+#include <pthread.h>
+#include <semaphore.h>
+#endif
+
+#define _buffer_size 25600000
+#define _sample_size 25600000
+
+#define _init_fills 2
+#define _pool_size 5000
+#define _sample_per_fill (_Bg * 2500)
 
 //Windows definition for generating random numbers
 #ifdef _WIN32
@@ -23,12 +31,16 @@ BOOLEAN NTAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength); // Use
 #define M_PI acosl(-1.0)
 #endif
 
+#ifdef _threads_number
+pthread_t threads[_threads_number - 1];
+#endif
+
 //Structures and global variables for precomputations
 struct gaussian_CDT
 {
   double param;
   double* table;
-  size_t size;
+  int size;
 };
 struct gaussian_CDT CDT; // pointer table is initialized to NULL
 
@@ -37,121 +49,145 @@ struct gaussian_pools
 {
   gaussian_param_t param;
   uint64_t mask;
-  size_t maxSize;
-  size_t* sizes;
+  int maxSize;
+  int* sizes;
   uint64_t** pools;
-  //size_t count;
+#ifdef _threads_number
+  pthread_mutex_t *mutex;
+  //sem_t *fill;
+  sem_t *pull;
+#endif
 };
 struct gaussian_pools Pools; // pointer pools is initialized to NULL
 // Hardcoded maxSize in the init function
 
+double *coin = NULL;
+uint64_t *sample = NULL;
+uint64_t *buffer = NULL;
+
 //uniform distrib over {0,1}
+void random_binary_vector(uint64_t *out, int len)
+{
+  uniform64_distribution_vector(out, len);
+  for (int i = 0; i < len; ++i)
+    out[i] = out[i] >> 63;
+}
 void random_binary(uint64_t *out)
 {
-	uniform64_distribution(out);
-	*out = *out >> 63;
-}
-void random_binary_vector(uint64_t *out, size_t len)
-{
-	uniform64_distribution_vector(out, len);
-	size_t i;
-	for (i=0; i<len; ++i)
-		out[i] = out[i] >> 63;
+  random_binary_vector(out, 1);
 }
 
 //uniform distrib between 0 and 2^64-1
 void uniform64_distribution(uint64_t *out)
 {
-	#ifdef _WIN32
-	RtlGenRandom((PVOID) out,(ULONG) sizeof(uint64_t));
-    #else// __unix__ __macos__
-    int fd=open("/dev/urandom", O_RDONLY);
+#ifdef _WIN32
+  RtlGenRandom((PVOID) out,(ULONG) sizeof(uint64_t));
+#else// __unix__ __macos__
+  int fd=open("/dev/urandom", O_RDONLY);
 
-	read(fd,out,sizeof(uint64_t));
+  read(fd,out,sizeof(uint64_t));
 
-	close(fd);
-    #endif
+  close(fd);
+#endif
 }
 
-void uniform64_distribution_vector(uint64_t *out, size_t len)
+void uniform64_distribution_vector(uint64_t *out, int len)
 {
-	#ifdef _WIN32
-	RtlGenRandom((PVOID) out,(ULONG) len*sizeof(uint64_t));
-	#else// __unix__ __macos__
-	int fd=open("/dev/urandom", O_RDONLY);
-	read(fd,out,len*sizeof(uint64_t));
-	close(fd);
-    #endif
+#ifdef _WIN32
+  RtlGenRandom((PVOID) out,(ULONG) len*sizeof(uint64_t));
+#else// __unix__ __macos__
+  //int fd=open("/dev/urandom", O_RDONLY);
+  //read(fd,out,len*sizeof(uint64_t));
+  //close(fd);
+  //getrandom(out, len * sizeof(uint64_t), GRND_NONBLOCK);
+  RAND_bytes((void *)out, len * sizeof(uint64_t));
+#endif
 }
 
 
 //uniform distrib between 0 and 1
 void random_double(double *out)
 {
-	uint64_t tmp;
-	uniform64_distribution(&tmp);
-	*out = tmp / (double) TWO_64_MINUS_1;
+  uint64_t tmp;
+  uniform64_distribution(&tmp);
+  *out = tmp / (double) TWO_64_MINUS_1;
 }
-void random_double_vector(double *out, size_t len)
+void random_double_vector(double *out, int len)
 {
-	uint64_t *tmp = (uint64_t*) malloc(len * sizeof(uint64_t));
-	uniform64_distribution_vector(tmp, len);
-	size_t i;
-	for (i=0; i<len; ++i)
-		out[i] = tmp[i] / (double) TWO_64_MINUS_1;
-	free(tmp);
+  //printf("%ld random_double_vector\n", len);
+  if (!buffer)
+    buffer = malloc(_buffer_size * sizeof(uint64_t));
+  uniform64_distribution_vector(buffer, len);
+  for (int i = 0; i < len; ++i)
+    out[i] = buffer[i] / (double) TWO_64_MINUS_1;
 }
 
 //Noise distribution
 void noise(double *out, double param)
 {
-	uint64_t coin;
-	random_binary(&coin);
-	double tmp;
-	random_double(&tmp);
-	if (coin)
-		tmp = param * sqrtl(-2. * logl(tmp));
-	else
-		tmp = - param *sqrtl(-2. * logl(tmp));
-	*out = tmp;
+  uint64_t coin;
+  random_binary(&coin);
+  double tmp;
+  random_double(&tmp);
+  if (coin)
+    tmp = param * sqrtl(-2. * logl(tmp));
+  else
+    tmp = - param *sqrtl(-2. * logl(tmp));
+  *out = tmp;
 }
 
 
-void noise_vector(double *out, double param, size_t len)
+void noise_vector(double *out, double param, int len)
 {
-	double *tmp = (double*) malloc(len * sizeof(double));
-	random_double_vector(tmp, len);
-	size_t i;
-	for (i=0; i<len-1; i+=2) {
-	  tmp[i] = sqrtl(-2. * logl(tmp[i]));
-	  tmp[i+1] = 2. * M_PI * tmp[i+1];
-	  out[i] = (param * tmp[i] * cosl(tmp[i+1]));
-	  out[i+1] = param * tmp[i] * sinl(tmp[i+1]);
-	}
-	free(tmp);
-	if (len % 2)
-          noise(out+len-1, param);
+  double *tmp = (double*) malloc(len * sizeof(double));
+  random_double_vector(tmp, len);
+  for (int i = 0; i < len - 1; i += 2) {
+    tmp[i] = sqrtl(-2. * logl(tmp[i]));
+    tmp[i+1] = 2. * M_PI * tmp[i+1];
+    out[i] = (param * tmp[i] * cosl(tmp[i+1]));
+    out[i+1] = param * tmp[i] * sinl(tmp[i+1]);
+  }
+  free(tmp);
+  if (len % 2)
+    noise(out+len-1, param);
 }
 
 //Gaussian over Z
+void check_CDT(double *table, int size){
+  double expectation = 0.0;
+  for (int i = 0; i < size-1; i = i + 1){
+    //printf("Pr(%d) = %lf\n", i - size/2, table[i+1] - table[i]);
+    expectation += (i - size/2) * (table[i+1] - table[i]);
+  }
+  printf("AVG : %lf\n", expectation);
+  double variance = 0.0;
+  for (int i = 0; i < size-1; i = i + 1){
+    variance += (i - size/2 - expectation) * (i - size/2 - expectation) * (table[i+1] - table[i]);
+  }
+  printf("VAR : %lf\n", variance);
+}
+
 double *compute_CDT(double param)
 {
-  size_t size = 2*_tail_cut*param;
+  //printf("compute_CDT\n");
+  int size = 2*_tail_cut*param;
   double *table = (double*) malloc (size * sizeof(double));
-  size_t i;
   double norm = 0.0L;
 
-  for (i=0; i<size; ++i)
+  for (int i = 0; i < size; ++i)
     {
-      norm += expl(- M_PI * powl(((double) ((int64_t) (i-size/2))/(param)),2.0L));
       table[i] = norm;
+      norm += expl(- M_PI * powl(((double) ((int64_t) (i-size/2))/(param)),2.0L));
     }
 
-  for (i=0; i<size; ++i)
+  for (int i = 0; i < size; ++i)
     {
       table[i] /= norm;
-      //			printf("%Id : %f\n", i-CDT.size/2, (double) CDT.table[i]);   // Uncomment to print cumulative distribution table
+      //printf("%Id : %f\n", i-size/2, (double) table[i]);   // Uncomment to print cumulative distribution table
     }
+  /*printf("Param : %lf\n",param);
+  printf("Expected variance : %lf\n",param * param / (2*acos(-1.0L)));
+  check_CDT(table, size);*/
   return table;
 }
 
@@ -161,127 +197,113 @@ void precompute_CDT(double param) {
   CDT.table = compute_CDT(param); //(double*) malloc (CDT.size * sizeof(double));
 }
 
-/*size_t target(double param) {
-  double pp = param * param;
-  size_t t = 0;
-  while (CDT.ss[t] < pp) t++;
-  return t-1;
-}
-
-uint64_t adjust(double param, size_t target) {
-  return 1+(1.0L+sqrtl(2*param*param/CDT.ss[target-1]-1))/2.0L;
-}*/
-
 gaussian_param_t gaussian(double param) {
-  double ssi, next;
-  uint64_t zi; size_t t;
+  if (param < 250)
+    return (gaussian_param_t) {
+      .param = param,
+      .target = 0,
+      .z = NULL,
+      .adjust = 1,
+    };
 
-  for(size_t s0 = 34; s0 <= 512; ++s0){
-    ssi = s0*s0; t = 0;
+  double ssi, next;
+  uint64_t zi; int t;
+
+  //printf("Param : %lf - squared : %lf\n", param, param * param);
+
+  double best_s0 = 34;
+  double best_tildes = 1.0 / 0.0;
+  for(double s0 = 34; s0 <= 512; s0 += 0.01){
+    t = 0;
+    ssi = s0*s0;
     zi = (sqrtl(ssi)/16.0L);
     next = (2*zi*(zi-1)+1)*ssi;
-    //printf("Test s0 = %zu\n",s0);
+    //printf("Test s0 = %lf - ",s0);
     while (param*param > next) {
       t++;
       ssi = next;
-      zi = (sqrtl(ssi)/16.0L);
-      next = (2*zi*(zi-1)+1)*ssi;
+      zi = floorl((sqrtl(ssi)/16.0L));
+      next = (zi > 2 ? 2*zi*(zi - 1) + 1 : zi * zi + 1)*ssi;
     }
-    if (param*param < 5 * ssi) {
-      gaussian_param_t p;
-      p.param = s0;
-      p.target = t;
-      p.z = malloc(t*sizeof(uint64_t));
-      ssi = s0*s0;
-      for (size_t i = 0; i < t; ++i) {
-        zi = (sqrtl(ssi)/16.0L);
-        p.z[i]=zi;
-        ssi = (2*zi*(zi-1)+1)*ssi;
-      }
-      p.adjust = 1+(1.0L+sqrtl(2*param*param/ssi-1))/2.0L;
-      return p;
+    uint64_t adjustz = ceill(1+(1.0L+sqrtl(2*param*param/ssi-1))/2.0L);
+    double tildes = (2 * adjustz * (adjustz - 1) + 1) * ssi;
+    if (tildes < best_tildes){
+      best_tildes = tildes;
+      best_s0 = s0;
     }
-    //printf("z=%lu,ss=%llf\n",z,ss);
+    //printf("tildes : %lf\n", tildes);
+    //printf("OK range : %lf -> %lf, next is %lf\n", ssi, 5 * ssi, next);
   }
-  assert(false);
   gaussian_param_t p;
+  p.param = best_s0;
+  p.target = t;
+  //printf("s0=%lf\n", p.param);
+  p.z = malloc(t*sizeof(uint64_t));
+  ssi = best_s0*best_s0;
+  //printf("ss0=%lf\n", ssi);
+  for (int i = 0; i < t; ++i) {
+    zi = floorl((sqrtl(ssi)/16.0L));
+    p.z[i] = zi;
+    ssi = (zi > 2 ? 2*zi*(zi - 1) + 1 : zi * zi + 1)*ssi;
+    //printf("z%d=%lu,ss%d=%lf\n",1+i,zi,1+i,ssi);
+  }
+  p.adjust = ceill(1+(1.0L+sqrtl(2*param*param/ssi-1))/2.0L);
+  //printf("adjust z = %ld\n", p.adjust);
   return p;
 }
 
 void clear_CDT()
 {
-	if (CDT.table != NULL)
-	{
-		free(CDT.table);
-		CDT.table = NULL;
-	}
+  if (CDT.table != NULL)
+    {
+      free(CDT.table);
+      CDT.table = NULL;
+    }
 }
 
 void small_gaussian_overZ(uint64_t *out, double param)
 {
-  double *table;
-  size_t size;
-  if (CDT.param == param) {//We want to sample from the precomputed gaussian parameter
-    table = CDT.table;
-    size = CDT.size;
-  }
-  else {
-    table = compute_CDT(param);
-    size = 2*_tail_cut*param;
-  }
-
-  double coin;
-  random_double(&coin);
-
-  size_t a = 0;
-  size_t b = size-1;
-  size_t c;
-  while (b-a > 1)
-    {
-      c = (a+b)/2;
-      if (coin > table[c])
-        a = c;
-      else
-        b = c;
-    }
-  *out = b-size/2;
+  small_gaussian_overZ_vector(out, param, 1);
 }
 
-void small_gaussian_overZ_vector(uint64_t *out, double param, size_t len)
+void small_gaussian_overZ_vector(uint64_t *out, double param, int len)
 {
   double *table;
-  size_t size;
+  int size;
   if (CDT.param == param) {//We want to sample from the precomputed gaussian parameter
     table = CDT.table;
     size = CDT.size;
+    //printf("%ld\n", size);
   }
   else {
     table = compute_CDT(param);
     size = 2*_tail_cut*param;
   }
 
-  double *coin = (double*) malloc (len * sizeof(double));
+  if (!coin)
+    coin = (double*) malloc (_sample_size * sizeof(double));
   random_double_vector(coin, len);
 
-  size_t i;
-  for (i=0; i<len; ++i) {
-    size_t a = 0;
-    size_t b = size-1;
-    size_t c;
-    while (b-a > 1)
+  for (int i = 0; i < len; ++i) {
+    uint64_t start = 0;
+    uint64_t len = size;
+    while (len > 2)
       {
-        c = (a+b)/2;
-        if (coin[i] > table[c])
-          a = c;
+        if (coin[i] >= table[start+len/2]){
+          start += len / 2;
+          len = len - len / 2;
+        }
         else
-          b = c;
+          len = len / 2;
       }
-    out[i] = b-size/2;
+    out[i] = start-size/2;
   }
-  free(coin);
+
+  if (CDT.param != param)
+    free(table);
 }
 
-uint64_t combine(uint64_t* in,  size_t size, size_t level, uint64_t *z)
+uint64_t combine(uint64_t* in, int size, int level, uint64_t *z)
 {
   if (!level)
     return *in;
@@ -292,23 +314,29 @@ uint64_t combine(uint64_t* in,  size_t size, size_t level, uint64_t *z)
 
 void gaussian_overZ(uint64_t *out, gaussian_param_t param)
 {
-  size_t n_samples = 1 << param.target;
+  int n_samples = 1 << param.target;
   uint64_t* sample = (uint64_t *) malloc(2*n_samples*sizeof(uint64_t));
   small_gaussian_overZ_vector(sample, param.param, 2*n_samples);
   *out = param.adjust * combine(sample,n_samples,param.target,param.z) + (param.adjust-1) * combine(sample+n_samples,n_samples,param.target,param.z);
   free(sample);
 }
 
-void gaussian_overZ_vector(uint64_t *out, gaussian_param_t param, size_t len)
+void gaussian_overZ_vector(uint64_t *out, gaussian_param_t param, int len)
 {
   //Pools.count++;
   //printf("%I64u\n", Pools.count);
-  size_t n_samples = 1 << param.target;
-  uint64_t* sample = (uint64_t *) malloc(2*n_samples*len*sizeof(uint64_t));
+  int n_samples = 1 << param.target;
+  if (!sample)
+    sample = (uint64_t *) malloc(_sample_size*sizeof(uint64_t));
   small_gaussian_overZ_vector(sample, param.param, 2*n_samples*len);
-  for (size_t i=0;i<len;++i)
-    out[i] = param.adjust * combine(sample+2*n_samples*i,n_samples,param.target,param.z) + (param.adjust-1) * combine(sample+2*n_samples*i+n_samples,n_samples,param.target,param.z);
-  free(sample);
+
+  for (int l = 0; l < param.target; ++l){
+    for (int i = 0; i < n_samples * len; ++i)
+      sample[i] = param.z[l] * sample[i] + (param.z[l] > 2 ? param.z[l] - 1 : 1) * sample[i + n_samples * len];
+    n_samples >>= 1;
+  }
+  for (int i = 0; i < len; ++i)
+    out[i] = param.adjust * sample[i] + (param.adjust - 1) * sample[i + len];
 }
 
 //G inverse
@@ -316,21 +344,29 @@ void gaussian_overZ_vector(uint64_t *out, gaussian_param_t param, size_t len)
 /* (d+1)ell ROWS, (d+1)N COLUMNS, Each adjacent N numbers are polynomial coefficients, Powers of Bg decreasing top to bottom from Bg^(ell-1) to 1 */
 void init_pools(gaussian_param_t param)
 {
-	printf("Initializing pools\n");
-        precompute_CDT(param.param);
-	Pools.maxSize = _pool_size;
-	Pools.param = param;
-	Pools.mask = (1 << _logBg) - 1;
-	Pools.sizes = (size_t *) malloc(_Bg * sizeof(size_t));
-	Pools.pools = (uint64_t **) malloc(_Bg * sizeof(uint64_t *));
-	//Pools.count = 0;
-	size_t i;
-	for (i=0; i<_Bg; ++i)
-	{
-		Pools.sizes[i] = 0;
-		Pools.pools[i] = (uint64_t *) malloc(Pools.maxSize * sizeof(uint64_t));
-	}
-	printf("Pools initialized\n");
+  printf("Initializing pools\n");
+  precompute_CDT(param.param);
+  Pools.maxSize = _pool_size;
+  Pools.param = param;
+  Pools.mask = (1 << _logBg) - 1;
+  Pools.sizes = (int *) malloc(_Bg * sizeof(int));
+  Pools.pools = (uint64_t **) malloc(_Bg * sizeof(uint64_t *));
+#ifdef _threads_number
+  Pools.mutex = malloc(_Bg * sizeof(pthread_mutex_t));
+  //Pools.fill = malloc(_Bg * sizeof(sem_t));
+  Pools.pull = malloc(_Bg * sizeof(sem_t));
+#endif
+  for (int i = 0; i < _Bg; ++i)
+    {
+      Pools.sizes[i] = 0;
+      Pools.pools[i] = (uint64_t *) malloc(Pools.maxSize * sizeof(uint64_t));
+#ifdef _threads_number
+      pthread_mutex_init(Pools.mutex + i, NULL);
+      //sem_init(Pools.fill + i, 0, Pools.maxSize);
+      sem_init(Pools.pull + i, 0, 0);
+#endif
+    }
+  printf("Pools initialized\n");
 }
 
 void clear_gaussian_param(gaussian_param_t p) {
@@ -340,139 +376,155 @@ void clear_gaussian_param(gaussian_param_t p) {
 
 void clear_pools()
 {
-	if (Pools.pools != NULL)
-	{
-		size_t i;
-		for (i = 0; i < _Bg; ++i)
-		{
-			free(Pools.pools[i]);
-		}
-		free(Pools.pools);
-		free(Pools.sizes);
-		Pools.pools = NULL;
-		Pools.sizes = NULL;
-                clear_gaussian_param(Pools.param);
-	}
+  if (Pools.pools != NULL)
+    {
+      for (int i = 0; i < _Bg; ++i)
+        {
+          free(Pools.pools[i]);
+        }
+      free(Pools.pools);
+      free(Pools.sizes);
+      Pools.pools = NULL;
+      Pools.sizes = NULL;
+      clear_gaussian_param(Pools.param);
+    }
 }
 
-void fill_pool() // Fills with _sample_per_fill samples the pools
+void *fill_pool(void *args) // Fills with _sample_per_fill samples the pools
 {
-	//printf("Filling pools\n");
-	uint64_t* sample = (uint64_t *) malloc(_sample_per_fill*sizeof(uint64_t));
-	gaussian_overZ_vector(sample, Pools.param, _sample_per_fill);
-	uint64_t v;
-	size_t i;
-	for (i=0; i<_sample_per_fill; ++i)
-	{
-		v = sample[i] % _Bg;
-		if (Pools.sizes[v] < Pools.maxSize - 1)
-		{
-			Pools.pools[v][++Pools.sizes[v]] = sample[i];
-			//++Pools.sizes[t];
-		}
-	}
-	free(sample);
-/*	printf("Pools filled :\n");
+  assert(!args);
+  //printf("Filling pools\n");
+  uint64_t* sample = (uint64_t *) malloc(_sample_per_fill*sizeof(uint64_t));
+#ifdef _threads_number
+  for (;;){
+#endif
+  gaussian_overZ_vector(sample, Pools.param, _sample_per_fill);
+  uint64_t v;
+  for (int i = 0; i < _sample_per_fill; ++i)
+    {
+      v = sample[i] % _Bg;
+      //assert(v >= 0 && v < _Bg);
+      //printf("SAMPLED : %lu\n", v);
+#ifdef _threads_number
+      //sem_wait(Pools.fill + v);
+      pthread_mutex_lock(Pools.mutex + v);
+      if (Pools.sizes[v] < Pools.maxSize){
+        Pools.pools[v][Pools.sizes[v]++] = sample[i];
+        sem_post(Pools.pull + v);
+      }
+      pthread_mutex_unlock(Pools.mutex + v);
+#else
+      if (Pools.sizes[v] < Pools.maxSize)
+        {
+          Pools.pools[v][Pools.sizes[v]++] = sample[i];
+        }
+#endif
+    }
+  /*	printf("Pools filled :\n");
 	for (t=0; t<Bg; ++t)
 	{
-		printf("%Iu : %Iu elements\n",t,Pools.sizes[t]);
-		for (i=1; i < 6; ++i)
-		{
-			if (i<Pools.sizes[t])
-				printf("\t%Id\n",Pools.pools[t][Pools.sizes[t]-i]);
-		}
+        printf("%Iu : %Iu elements\n",t,Pools.sizes[t]);
+        for (i=1; i < 6; ++i)
+        {
+        if (i<Pools.sizes[t])
+        printf("\t%Id\n",Pools.pools[t][Pools.sizes[t]-i]);
+        }
 	}*/
-	//Pools.count++;
-	//printf("%I64u\n", Pools.count);
+  //Pools.count++;
+  //printf("%I64u\n", Pools.count);
+#ifdef _threads_number
+  }
+#endif
+  free(sample);
+  return NULL;
 }
 
 void pull_pool(uint64_t *out, uint64_t in)
 {
-	//printf("%I64u\n", in);
-	while (!Pools.sizes[in])
-	{
-		fill_pool();
-	}
-	*out = Pools.pools[in][--Pools.sizes[in]]; // This line for real precomputation
-	//*out = Pools.pools[in][Pools.sizes[in]-1]; // This line for dummy precomputation
-	//--Pools.sizes[in];
-	//Pools.count++;
-	//printf("%I64u\n", Pools.count);
+  //assert(0 <= in && in < _Bg);
+#ifdef _threads_number
+  sem_wait(Pools.pull + in);
+  pthread_mutex_lock(Pools.mutex + in);
+  *out = Pools.pools[in][--Pools.sizes[in]];
+  pthread_mutex_unlock(Pools.mutex + in);
+  //sem_post(Pools.fill + in);
+#else
+  while (!Pools.sizes[in])
+    {
+      fill_pool(NULL);
+    }
+  *out = Pools.pools[in][--Pools.sizes[in]]; // This line for real precomputation
+  //*out = Pools.pools[in][Pools.sizes[in]-1]; // This line for dummy precomputation
+#endif
 }
 
 void gaussian_ginv(uint64_t *out, uint64_t in)
 {
-//	if (Pools.pools == NULL) //Sample pools have not yet been initialized, so we do it
-//	{
-//		init_pools(param);
-//	}
-
-	//printf("v : %Iu\n", v);
-	size_t i;
-	/*for (i=ell-1; i+1 > 0; --i)
-	{
-		//printf("v mod Bg : %Id\n", v%Bg);
-		pull_pool(out+i, v%Bg, param, Bg);
-		//pull_pool(out+i, (in << (i * Pools.logBg)) >> (64 - Pools.logBg), param, Bg);
-		//v = (v - out[i])/((int64_t) Bg);
-		v = (v - out[i])/Bg;
-		//printf("v : %Id\n", v);
-	}*/
-	uint64_t v = in >> (64 - _logBg * _ell);
-	for (i = _ell-1; i+1 > 0; --i)
-	{
-		pull_pool(out+i, v & Pools.mask);
-		v = (v - out[i]) >> _logBg;
-	}
+  //	if (Pools.pools == NULL) //Sample pools have not yet been initialized, so we do it
+  //	{
+  //		init_pools(param);
+  //	}
+  uint64_t v = in >> (64 - _logBg * _ell);
+  for (int i = _ell-1; i+1 > 0; --i)
+    {
+      pull_pool(out+i, v & Pools.mask);
+      v = (v - out[i]) >> _logBg;
+    }
 }
 
-void gaussian_ginv_vector(uint64_t *out, uint64_t *in, size_t len)
+void gaussian_ginv_vector(uint64_t *out, uint64_t *in, int len)
 {
-	size_t i;
-	for(i=0; i<len; ++i)
-		gaussian_ginv(out+(i*_ell), in[i]);
+  for(int i = 0; i < len; ++i)
+    gaussian_ginv(out+(i*_ell), in[i]);
 }
 
 //N first elements of output is LSBs
 void gaussian_ginv_poly(uint64_t *out, uint64_t *in)
 {
-//	if (Pools.pools == NULL) //Sample pools have not yet been initialized, so we do it
-//	{
-//		init_pools(param);
-//	}
-	size_t coeff;
-	size_t i;
-	for (coeff = 0; coeff < _N; ++coeff)
-	{
-		int64_t v = in[coeff] >> (64 - _logBg * _ell);
-		for (i=_ell-1; i+1 > 0; --i)
-		{
-			//pull_pool(out+i*N+coeff, v%Bg, param, Bg);
-			pull_pool(out+i*_N+coeff, v & Pools.mask);
-			v = (v - out[i*_N+coeff]) >> _logBg;
-			//v = (v - out[i*N+coeff])/Bg;
-		}
-	}
+  //	if (Pools.pools == NULL) //Sample pools have not yet been initialized, so we do it
+  //	{
+  //		init_pools(param);
+  //	}
+  for (int coeff = 0; coeff < _N; ++coeff)
+    {
+      int64_t v = in[coeff] >> (64 - _logBg * _ell);
+      for (int i = _ell-1; i + 1 > 0; --i)
+        {
+          //printf("PULL : %lu\n", v & Pools.mask);
+          pull_pool(out+i*_N+coeff, v & Pools.mask);
+          //printf("GOT\n");
+          v = (v - out[i*_N+coeff]) >> _logBg;
+        }
+    }
 }
 
-void gaussian_ginv_poly_vector(uint64_t *out, uint64_t *in, size_t len)
+void gaussian_ginv_poly_vector(uint64_t *out, uint64_t *in, int len)
 {
-	for(size_t i = 0; i < len; ++i)
-		gaussian_ginv_poly(out+(i*_ell*_N), in + i*_N);
+  for(int i = 0; i < len; ++i)
+    gaussian_ginv_poly(out+(i*_ell*_N), in + i*_N);
 }
 
 
 //Initialize and fills pools for Ginv
 void precompute_random(gaussian_param_t param)
 {
-	init_pools(param);
-	for (size_t i = 0; i < _init_fills; ++i)
-		fill_pool();
+  init_pools(param);
+#ifdef _threads_number
+  for (int i = 0; i < _threads_number - 1; ++i){
+    pthread_create(threads + i, NULL, fill_pool, NULL);
+  }
+#else
+  for (int i = 0; i < _init_fills; ++i)
+    fill_pool(NULL);
+#endif
 }
 
 // Clearing the precomputation stuff
 void clear_random()
 {
-	clear_CDT();
-	clear_pools();
+  clear_CDT();
+  clear_pools();
+  if (coin) free(coin);
+  if (sample) free(sample);
+  if (buffer) free(buffer);
 }

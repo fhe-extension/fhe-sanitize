@@ -2,69 +2,127 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <complex.h>
-#include <fftw3.h>
+#include "../fft.h"
+
+#define _split (_ell * _logBg) / 3
+#define _Ntries 1000
 
 int main()
 {
-	size_t N = 1024;
-	double *r;
-	fftw_complex *c1, *c2;
-    fftw_plan p1, p2, b;
+  fft_init();
+  uint64_t *r = malloc(_N * sizeof(uint64_t));
 
-    r = (double *) fftw_malloc(sizeof(double) * 2 * N);
-    
-    c1 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (N+1));
-    c2 = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (N+1));
+  printf("Split : %d\n", _split);
+
+  for (int i = 0; i < _N; ++i)
+    r[i] = 0;
+  r[0] = 3 << (64 - _logBg * _ell);
+  r[1] = 4 << (64 - _logBg * _ell);
+  uniform64_distribution_vector(r, 1);
+  r[0] <<= 64 - _logBg * _ell;
+  uint64_t c0 = r[0];
+  printf("1st polynomial, coeff 0 = %llu\n", r[0]);
+
+  fftw_complex *c1 = fftw_malloc(3 * (_N + 1) * sizeof(fftw_complex));
+
+  for (int coeff = 0; coeff < _N; ++coeff){
+    fft_real[coeff] = r[coeff] >> (64 - _split); // High order bits
+  }
+  memset(fft_real+_N, 0, _N * sizeof(double));
+  fftw_execute(fft_forward);
+  memcpy(c1, fft_complex, (_N+1) * sizeof(fftw_complex));
+  for (int coeff = 0; coeff < _N; ++coeff){
+    fft_real[coeff] = (r[coeff] << _split) >> (64 - _split); // Mid order bits
+  }
+  memset(fft_real+_N, 0, _N * sizeof(double));
+  fftw_execute(fft_forward);
+  memcpy(c1 + (_N+1), fft_complex, (_N+1) * sizeof(fftw_complex));
+  for (int coeff = 0; coeff < _N; ++coeff){
+    fft_real[coeff] = (r[coeff] << (2 * _split)) >> (64 - _split); // Low order bits
+  }
+  memset(fft_real+_N, 0, _N * sizeof(double));
+  fftw_execute(fft_forward);
+  memcpy(c1 + 2 * (_N+1), fft_complex, (_N+1) * sizeof(fftw_complex));
+
+  for (int i = 0; i < _N; ++i)
+    r[i] = 0;
+  r[0] = 1;
+  r[1] = 2;
+  uniform64_distribution_vector(r, 1);
+  printf("2nd polynomial, coeff 0 = %llu\n", r[0]);
 
 
-    if (fftw_import_wisdom_from_filename("../wisdom"))
-        {printf("SUCCESS !\n");}
+  printf("Expected coeff 0 : %llu\n", c0 * r[0]);
+  uint64_t out[_N];
+  for (int i = 0; i < _N; ++i)
+    out[i] = 0;
 
-	p1 = fftw_plan_dft_r2c_1d(2 * N, r, c1, FFTW_EXHAUSTIVE | FFTW_DESTROY_INPUT);
-    p2 = fftw_plan_dft_r2c_1d(2 * N, r, c2, FFTW_EXHAUSTIVE | FFTW_DESTROY_INPUT);
-    b = fftw_plan_dft_c2r_1d(2 * N, c1, r, FFTW_EXHAUSTIVE | FFTW_DESTROY_INPUT);
-    fftw_export_wisdom_to_filename("../wisdom");
+  multiply_accumulate_poly_fft(out, r, c1);
+  for (int i = 0; i < 10; ++i)
+    printf("%llu\n", out[i]);
 
+  /* FULL SPACE PRODUCT */
+  int cpt = 0;
+  double var = 0;
+  printf("FULL SPACE PRODUCT TEST\n");
+  for (int i = 0; i < _Ntries; ++i){
+    uniform64_distribution_vector(r, _N);
+    for (int i = 0; i < _N; ++i)
+      r[i] <<= 64 - _logBg * _ell;
 
-    size_t i;
-    for (i = 0; i < 2 * N; ++i)
-    {
-    	r[i] = 0;
+    for (int coeff = 0; coeff < _N; ++coeff){
+      fft_real[coeff] = r[coeff] >> (64 - _split); // High order bits
     }
-    r[0] = 3;
-    r[1] = 4;
-
-    fftw_execute(p1);
-
-    for (i = 0; i < 2 * N; ++i)
-    {
-    	r[i] = 0;
+    memset(fft_real+_N, 0, _N * sizeof(double));
+    fftw_execute(fft_forward);
+    memcpy(c1, fft_complex, (_N+1) * sizeof(fftw_complex));
+    for (int coeff = 0; coeff < _N; ++coeff){
+      fft_real[coeff] = (r[coeff] << _split) >> (64 - _split); // Mid order bits
     }
-    r[0] = 1;
-    r[1] = 2;
+    memset(fft_real+_N, 0, _N * sizeof(double));
+    fftw_execute(fft_forward);
+    memcpy(c1 + (_N+1), fft_complex, (_N+1) * sizeof(fftw_complex));
+    for (int coeff = 0; coeff < _N; ++coeff){
+      fft_real[coeff] = (r[coeff] << (2 * _split)) >> (64 - _split); // Low order bits
+    }
+    memset(fft_real+_N, 0, _N * sizeof(double));
+    fftw_execute(fft_forward);
+    memcpy(c1 + 2 * (_N+1), fft_complex, (_N+1) * sizeof(fftw_complex));
 
-    fftw_execute(p2);
+    uint64_t r2[_N];
+    uniform64_distribution_vector(r2, _N);
 
-    for (i = 0; i < N + 1; ++i)
-	{
-		c1[i] *= c2[i];
-	}
-	fftw_execute(b);
+    uint64_t out2[_N];
+    for (int i = 0; i < _N; ++i){
+      r2[i] &= (1L << _logBg * _ell) - 1;
+      out[i] = 0;
+      out2[i] = 0;
+    }
 
-	for (i = 0; i < 10; ++i)
-	{
-		printf("%f\n", (double) r[i] / (2 * N));
-	}
+    multiply_accumulate_poly_fft(out, r2, c1);
 
-    fftw_destroy_plan(p1); fftw_destroy_plan(p2); fftw_destroy_plan(b);
-    fftw_free(r); fftw_free(c1); fftw_free(c2);
+    multiply_accumulate_poly(out2, r2, r);
+    for (int i = 0; i < _N; ++i){
+      if (out[i] != out2[i]){
+        cpt++;
+        printf("MISMATCH %d : %llu == %llu --- ", i, out[i], out2[i]);
+        printf("Delta : %lld\n", ((int64_t) out[i] - (int64_t) out2[i]));
+      }
+      var += ((int64_t) out[i] - (int64_t) out2[i]) * ((int64_t) out[i] - (int64_t) out2[i]);
+    }
+  }
 
-	#ifdef _WIN32
-	system("pause"); // Pauses to actually see the output in windows
-	#endif
+  printf("Mismatchs : %d; Variance : %lf\n", cpt, var / _N);
 
-	return 0;
+  fft_clear();
+  free(r);
+  free(c1);
+
+#ifdef _WIN32
+  system("pause"); // Pauses to actually see the output in windows
+#endif
+
+  return 0;
 }
 
 

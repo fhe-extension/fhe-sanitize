@@ -1,61 +1,48 @@
-
 CC = gcc
-CFLAGS = -std=c99 -Wall -Ofast
-LIBS = -I /usr/local/include -L /usr/local/lib -lfftw3 -lm
-TARGET = Tests/Test_uniform64 Tests/Test_binary Tests/Test_double Tests/Test_noise Tests/Test_gaussian Tests/Test_ginv Tests/Test_lwe Tests/Test_tlwe Tests/Test_tlwe_fft Tests/Test_tgsw Tests/Test_bootstrapping Tests/Test_fft Tests/Test_sanitize Tests/Test_sanitize_pkc Tests/Test_bootstrapping_fft
-SRC = $(wildcard *.c)
+ARCH = arch -arm64
+
+OPENSSL_PREFIX = /opt/homebrew/opt/openssl@3
+FFTW_PREFIX = /opt/homebrew/opt/fftw
+
+CFLAGS =-std=c99 -Wall -Ofast -I$(OPENSSL_PREFIX)/include -I$(FFTW_PREFIX)/include
+#CFLAGS =-std=c99 -Wall -O3 -pg -g -Wall -Wextra -fsanitize=address,undefined -I$(OPENSSL_PREFIX)/include -I$(FFTW_PREFIX)/include
+
+LDFLAGS = -L$(OPENSSL_PREFIX)/lib -L$(FFTW_PREFIX)/lib -lfftw3 -lm -lssl -lcrypto
+
+SRC = $(filter-out $(wildcard Tests/*.c), $(wildcard *.c))
 OBJ = $(SRC:.c=.o)
 
-all : $(TARGET)
 
-Tests/Test_uniform64: Tests/Test_uniform64.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+# Liste des tests à compiler
+TESTS = \
+	Test_uniform64 \
+	Test_binary \
+	Test_double \
+	Test_noise \
+	Test_gaussian \
+	Test_small_gaussian \
+	Test_ginv \
+	Test_lwe \
+	Test_tlwe \
+ 	Test_product \
+	Test_tlwe_fft \
+	Test_tgsw \
+	Test_tgsw_fft \
+	Test_fft \
+	Test_bootstrapping_fft
 
-Tests/Test_binary: Tests/Test_binary.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
-Tests/Test_double: Tests/Test_double.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+TARGETS = $(addprefix Tests/, $(TESTS))
 
-Tests/Test_noise: Tests/Test_noise.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+all: $(TARGETS)
 
-Tests/Test_gaussian: Tests/Test_gaussian.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
-Tests/Test_ginv: Tests/Test_ginv.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+Tests/%: Tests/%.c $(OBJ)
+	$(ARCH) $(CC) $(CFLAGS) $< $(OBJ) -o $@ $(LDFLAGS)
 
-Tests/Test_lwe: Tests/Test_lwe.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
-
-Tests/Test_tlwe: Tests/Test_tlwe.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
-
-Tests/Test_tlwe_fft: Tests/Test_tlwe_fft.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
-
-Tests/Test_tgsw: Tests/Test_tgsw.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
-
-Tests/Test_bootstrapping: Tests/Test_bootstrapping.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
-
-Tests/Test_fft: Tests/Test_fft.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
-
-Tests/Test_sanitize: Tests/Test_sanitize.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
-
-Tests/Test_sanitize_pkc: Tests/Test_sanitize_pkc.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
-
-Tests/Test_bootstrapping_fft: Tests/Test_bootstrapping_fft.c $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
-
+# Compilation des .o
 %.o: %.c
-	$(CC) -o $@ -c $< $(CFLAGS) $(LIBS)
+	$(ARCH) $(CC) -c $< -o $@ $(CFLAGS)
 
 clean:
-	rm -f *.o core
-
+	rm -f *.o core $(TARGETS)

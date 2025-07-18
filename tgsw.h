@@ -22,14 +22,14 @@ int* tgsw_decrypt(tlwe_sk sk, tgsw_sample ct);
 void tgsw_decrypt_over_and_keep(int *m, tlwe_sk sk, tgsw_sample ct);
 
 /* Generates a boostrapping key */
-bsk generate_bsk(lwe_sk sk_in, tlwe_sk sk_out, double param, size_t n);
-void bsk_clear(bsk bsk, size_t n);
+bsk generate_bsk(lwe_sk sk_in, tlwe_sk sk_out, double param, int n);
+void bsk_clear(bsk bsk, int n);
 
 /* Exeternal product between a TLWE sample and a TGSW sample */
 tlwe_sample external_product(tlwe_sample tlwe, tgsw_sample tgsw);
 
 /* Blind_rotate function used during bootstrapping */
-tlwe_sample blind_rotate(lwe_sample lwe, int M, size_t n, uint64_t* test_vector, tgsw_sample *bsk);
+tlwe_sample blind_rotate(lwe_sample lwe, int n, uint64_t* test_vector, tgsw_sample *bsk);
 
 /* In place bootstrapping of an LWE ciphertext */
-void bootstrap(lwe_sample ct, bsk bsk, ksk ksk, int M_out, size_t n);
+void bootstrap(lwe_sample ct, bsk bsk, ksk ksk, int M_out, int n);

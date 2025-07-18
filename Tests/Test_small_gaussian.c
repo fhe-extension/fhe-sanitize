@@ -13,19 +13,18 @@ int main()
 	printf("Choose param : ");
 	scanf("%lf", &input);
 
-	double param = (double) input;
-        gaussian_param_t p = gaussian(param);
+	double p = (double) input;
 
 	printf("Single :\n");
 
 	uint64_t random;
-	gaussian_overZ(&random, p);
+	small_gaussian_overZ(&random, p);
 
-        printf("%llu\n", (long long int) random);
+        printf("%lld\n", (long long int) random);
 
 	printf("Vector :\n");
 	uint64_t *randomv = (uint64_t *) malloc(numSamples * sizeof(uint64_t));
-	gaussian_overZ_vector(randomv, p, numSamples);
+	small_gaussian_overZ_vector(randomv, p, numSamples);
 
 	size_t i;
 	uint64_t count = 0;
@@ -43,9 +42,8 @@ int main()
 
 	printf("Observed average  : %lf\n",(double) avg/numSamples);
 	printf("Observed variance : %lf\n",(double) count/numSamples);
-        printf("Expected variance : %lf\n", (param*param)/(2*acos(-1.0L)));
+        printf("Expected variance : %lf\n", (p*p)/(2*acos(-1.0L)));
 
-        clear_gaussian_param(p);
 	clear_random();
 
 	#ifdef _WIN32

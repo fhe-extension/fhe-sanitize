@@ -2,12 +2,11 @@
 #include <assert.h>
 
 #include "../clock.h"
-//#include "Test_parameters.h"
 #include "../lwe.h"
 
 
 #define n_test 1000
-#define TEST_ENC_DEC 1
+#define TEST_ENC_DEC 0
 #define TEST_KS 1
 
 int main(int argc, char const *argv[])
@@ -74,7 +73,7 @@ int main(int argc, char const *argv[])
 	if (TEST_KS) {
           accum_var = 0;
           start_chrono();
-          ksk ksk = generate_ksk(ss, s, powl(2.0L,50.4L), LWE_SIZE_PRIME, LWE_SIZE);
+          ksk ksk = generate_ksk(ss, s, powl(2.0L,-13.4L + 64.0L), LWE_SIZE_PRIME, LWE_SIZE);
           //ksk ksk = generate_ksk(ss, s, 0, LWE_SIZE_PRIME, LWE_SIZE);
           accum_gen += stop_chrono();
           for(int try = 0; try < n_test; ++try) {
@@ -95,7 +94,7 @@ int main(int argc, char const *argv[])
           printf("Time for generating ksk: %f microseconds\n", (double)accum_gen / n_test);
           printf("Time for keyswitching:   %f microseconds\n", (double)accum_ks / n_test);
           printf("Variance of the error : %f\n", (double)accum_var/n_test);
-          ksk_clear(ksk, LWE_SIZE_PRIME, LWE_SIZE);
+          ksk_clear(ksk, LWE_SIZE_PRIME);
         }
 
         // cleanup

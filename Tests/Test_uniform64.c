@@ -9,7 +9,7 @@ void myprint(uint64_t number)
 #ifdef _WIN32
 	printf("%Iu\n", number);
 #else
-	printf("%llu\n", number);
+	printf("%lu\n", number);
 #endif
 }
 
